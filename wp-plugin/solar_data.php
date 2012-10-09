@@ -26,8 +26,8 @@ register_deactivation_hook( __FILE__, 'solar_data_remove' );
 function solar_data_install() {
 	/* Creates new database fields */
 
-	/* Format: time (unix seconds), current (W), total_today (kWh), total (kWh), last_average (W) */
-	add_option('solar_data', '0,0,0,0,0', '', 'yes');
+	/* Format: time (unix seconds), current (W), total_today (kWh), total (kWh), last_average (W), eff (%) */
+	add_option('solar_data', '0,0,0,0,0,0', '', 'yes');
 }
 
 function solar_data_remove() {
@@ -45,14 +45,14 @@ function solar_data_post($attrs) {
 		$dbTemp = get_option('solar_data');
 	}
 	/* Format: time (unix seconds), current (W), total_today (kWh), total (kWh), last_average (W) */
-	list($old_time, $old_current, $old_total_today, $old_total, $last_average) = explode(",", $dbTemp);
+	list($old_time, $old_current, $old_total_today, $old_total, $last_average, $last_eff) = explode(",", $dbTemp);
 
 	/* Look for solarVar input variable in URL */
 	if (!$_REQUEST['solarVar'])
 		return; /* no data! */
 
 	/* decode URL argument solarVar */
-	list ($current, $total_today, $total) = explode(",", $_REQUEST['solarVar']);
+	list ($current, $total_today, $total, $eff) = explode(",", $_REQUEST['solarVar']);
 
 	/* get current time */
 	$time = time();
@@ -66,7 +66,7 @@ function solar_data_post($attrs) {
 	}
 
 	/* store values in db */
-	update_option('solar_data', implode(",", array($time, $current, $total_today, $total, $average)));
+	update_option('solar_data', implode(",", array($time, $current, $total_today, $total, $average, $eff)));
 }
 
 add_shortcode("solar_data_value", "solar_data_value");
@@ -79,8 +79,8 @@ function solar_data_value($attrs) {
 	if (!$dbTemp)
 		return "unavailable";
 
-	/* Format: time (unix seconds), current (W), total_today (kWh), total (kWh), last_average (W) */
-	list($time, $current, $total_today, $total, $average) = explode(",", $dbTemp);
+	/* Format: time (unix seconds), current (W), total_today (kWh), total (kWh), last_average (W), eff (%) */
+	list($time, $current, $total_today, $total, $average, $eff) = explode(",", $dbTemp);
 
 	$value = $total_today;
 	$unit = ' kWh';
@@ -101,6 +101,9 @@ function solar_data_value($attrs) {
 			$value = date("j/n-Y G:i", $time);
 			$unit = '';
 			break;
+		case 'eff':
+			$value = $eff;
+			$unit = " %";
 	}
 
 	return "{$value}{$unit}";
